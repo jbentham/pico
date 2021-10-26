@@ -1,3 +1,3 @@
-Simple MicroPython and CircuitPython Pi Pico webservers using ESP32 WiFi
+Simple MicroPython and CircuitPython projects
 
 See https://iosoft.blog for details.

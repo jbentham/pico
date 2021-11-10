@@ -19,6 +19,8 @@
 # limitations under the License.
 #
 # v0.06 JPB 26/9/21  Tidied up for release
+# v0.07 JPB 19/10/21 Added content-type to put_http_text
+# v0.08 JPB 23/10/21 Changed recv_length to use avail_data (was avail_server) 
 
 import os, utime, picowireless, machine
 from micropython import const
@@ -110,7 +112,8 @@ class ESP32:
 
     # Return length of data received by server
     def recv_length(self, sock):
-        return picowireless.avail_server(sock)
+        return picowireless.avail_data(sock)
+        #return picowireless.avail_server(sock)
 
     # Return data received by server
     def recv_data(self, sock):
@@ -132,10 +135,23 @@ class ESP32:
         picowireless.client_stop(sock)
 
     # Get HTTP request from client
-    def get_http_request(self, mstout=1000):
+    def get_http_request(self):
+        self.client_sock = self.get_client_sock(self.server_sock)
+        request = ""
+        client_dlen = self.recv_length(self.client_sock)
+        while self.client_sock != 255 and client_dlen > 0:
+            print("Client socket %d len %d: " % (self.client_sock, client_dlen), end="")
+            req = self.recv_data(self.client_sock)
+            if req:
+                request += req.decode("utf-8")
+            client_dlen = self.recv_length(self.client_sock)
+        return request
+
+    def get_http_request2(self, mstout=1000):
         self.client_sock = self.get_client_sock(self.server_sock)
         client_dlen = self.recv_length(self.client_sock)
         if self.client_sock != 255 and client_dlen > 0:
+            print("len %u" % client_dlen)
             startime = utime.ticks_ms()
             print("Client socket %d len %d: " % (self.client_sock, client_dlen), end="")
             req = b""
@@ -163,10 +179,11 @@ class ESP32:
         self.send_end(self.client_sock)
 
     # Send text response to client
-    def put_http_text(self, text):
+    def put_http_text(self, text, content="text/html", hdr=""):
         resp = HTTP_OK + CONTENT_LEN%len(text)
-        resp += CONTENT_TYPE%"text/html" + HEAD_END + text
+        resp += CONTENT_TYPE%content + hdr + HEAD_END
         self.put_data(resp)
+        self.put_data(text)
         self.send_end(self.client_sock)
         self.txcount += 1
 

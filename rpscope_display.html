@@ -1,0 +1,148 @@
+<html><!DOCTYPE html><html lang="en">
+<!-- Simple oscilloscope display using AJAX
+     v0.01 JPB 4/11/21
+-->
+<head><meta charset="utf-8"/></head><body>
+  <script type="text/javascript" language="javascript"> "use strict";
+    var ctx1, xdivisions=10, ydivisions=10, winxpad=10, winypad=30;
+    var grid_bg="#d8e8d8", grid_fg="#40f040";
+    var minval = 0, maxval = 3.3;
+	var capfile="/capture.csv", running=false;
+
+	// Handle event: application loaded
+    window.addEventListener("load", function() {
+        ctx1 = document.getElementById("canvas1").getContext("2d");
+        resize();
+        window.addEventListener('resize', resize, false);
+    } );
+
+    // Draw grid in display area
+    function drawGrid(ctx) {
+        var w=ctx.canvas.clientWidth, h=ctx.canvas.clientHeight;
+        var dw = w/xdivisions, dh=h/ydivisions;
+        ctx.fillStyle = grid_bg;
+        ctx.fillRect(0, 0, w, h);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = grid_fg;
+        ctx.strokeRect(0, 1, w-1, h-1);
+        ctx.beginPath();
+        for (var n=0; n<xdivisions; n++) {
+          var x = n*dw;
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+        }
+        for (var n=0; n<ydivisions; n++) {
+          var y = n*dh;
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+    }
+
+    // Draw trace
+    function drawTrace(ctx, data) {
+        var w=ctx.canvas.clientWidth, h=ctx.canvas.clientHeight;
+		var nsamples=data.length, scale=maxval-minval, dx=w/nsamples;
+        ctx.beginPath();
+        for (var n=0; n<nsamples; n++) {
+            var normval = (data[n] - minval) / scale;
+            ctx.lineTo(n*dx, h-normval*h);
+        }
+        ctx.strokeStyle = "red";
+        ctx.stroke();
+    }
+
+    // Decode CSV data, with one value per line
+    function csvDecode(s) {
+      var vals = [], items = s.split('\n');
+      for (var i=0; i<items.length; i++) {
+        var item = items[i];
+        var val = parseFloat(item.trim());
+        if (!Number.isNaN(val)) {
+          vals.push(val);
+        }
+      }
+      return vals;
+    }
+
+    // Plot CSV data
+    function plotData(ctx, s) {
+      var data = csvDecode(s);
+      //console.log(data.length + " data points");
+      drawTrace(ctx, data);
+    }
+
+    // Handle 'single' button press
+    function doSingle() {
+      event.preventDefault();
+	  running = false;
+	  capture();
+	}
+
+	// Handle 'run' button press
+	function doRun() {
+	  event.preventDefault();
+	  running = !running;
+	  capture();
+	}
+
+	// Do a single capture (display is done by callback)
+	function capture() {
+	  document.getElementById("run").innerText = running ? "Stop" : "Run";
+      var req = new XMLHttpRequest();
+	  req.addEventListener( "load", display);
+	  var params = formParams()
+      //console.log("Params: " + params.join(" "));
+      req.open( "GET", capfile + "?" + encodeURI(params.join("&")));
+      req.send();
+    }
+
+	// Display data (from callback event)
+	function display(event) {
+      drawGrid(ctx1);
+      plotData(ctx1, event.target.responseText);
+      if (running) {
+        window.requestAnimationFrame(capture);
+      }
+	}
+
+	// Get form parameters
+    function formParams() {
+      var formdata = new FormData(document.getElementById("captureForm"));
+      var params = [];
+      for (var entry of formdata.entries()) {
+        params.push(entry[0]+ '=' + entry[1]);
+      }
+      return params;
+	}
+
+    // Respond to window being resized
+    function resize() {
+      ctx1.canvas.width = window.innerWidth - winxpad*2;
+      ctx1.canvas.height = window.innerHeight - winypad*2;
+      drawGrid(ctx1);
+    }
+  </script>
+  <form id="captureForm">
+    <label for="nsamples">Number of samples</label>
+    <select name="nsamples" id="nsamples">
+      <option value=100>100</option>
+      <option value=200>200</option>
+	  <option value=500>500</option>
+      <option value=1000>1000</option>
+    </select>
+    <label for="xrate">Sample rate</label>
+    <select name="xrate" id="xrate">
+      <option value=1000>1000</option>
+      <option value=2000>2000</option>
+	  <option value=5000>5000</option>
+      <option value=10000>10000</option>
+    </select>
+    <label for="simulate">Simulate</label>
+    <input type="checkbox" id="simulate" name="simulate">
+    <label for="start">Capture</label>
+    <button id="single" onclick="doSingle()">Single</button>
+    <button id="run"  onclick="doRun()">Run</button>
+  </form>
+  <div><canvas id="canvas1"></canvas></div>
+</body></html>

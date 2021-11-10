@@ -1,0 +1,55 @@
+<html><!DOCTYPE html><html lang="en">
+<!-- Simple oscilloscope data capture using AJAX
+     v0.01 JPB 4/11/21
+-->
+<head><meta charset="utf-8"/></head><body>
+  <script type="text/javascript" language="javascript"> "use strict";
+    function doSubmit() {
+      // Eliminate default action for button click
+      // (only necessary if button is in a form)
+      event.preventDefault();
+
+      // Create request
+      var req = new XMLHttpRequest();
+
+      // Define action when response received
+      req.addEventListener( "load", function(event) {
+        document.getElementById("responseText").innerHTML = event.target.responseText;
+      } );
+
+      // Create FormData from the form
+      var formdata = new FormData(document.getElementById("captureForm"));
+
+      // Insert form data into request - doesn't work!
+      //req.open("GET", "/capture.csv");
+      //req.send(formdata);
+
+      // Collect form data and add to request
+      var params = [];
+      for (var entry of formdata.entries()) {
+        params.push(entry[0]+ '=' + entry[1]);
+      }
+      console.log("Params: " + params.join(" "));
+      req.open( "GET", "/capture.csv?" + encodeURI(params.join("&")));
+      req.send();
+    }
+  </script>
+  <form id="captureForm">
+    <label for="nsamples">Number of samples</label>
+    <select name="nsamples" id="nsamples">
+      <option value=100>100</option>
+      <option value=200>200</option>
+	  <option value=500>500</option>
+      <option value=1000>1000</option>
+    </select>
+    <label for="xrate">Sample rate</label>
+    <select name="xrate" id="xrate">
+      <option value=1000>1000</option>
+      <option value=2000>2000</option>
+	  <option value=5000>5000</option>
+      <option value=10000>10000</option>
+    </select>
+    <button onclick="doSubmit(event)">Submit</button>
+  </form>
+  <pre><p id="responseText"></p></pre>
+</body></html>

@@ -1,0 +1,23 @@
+<html><!DOCTYPE html><html lang="en">
+<!-- Simple oscilloscope data capture
+     v0.01 JPB 4/11/21
+-->
+<head><meta charset="utf-8"/></head><body>
+  <form action="/capture.csv">
+    <label for="nsamples">Number of samples</label>
+    <select name="nsamples" id="nsamples">
+      <option value=100>100</option>
+      <option value=200>200</option>
+	  <option value=500>500</option>
+      <option value=1000>1000</option>
+    </select>
+    <label for="xrate">Sample rate</label>
+    <select name="xrate" id="xrate">
+      <option value=1000>1000</option>
+      <option value=2000>2000</option>
+	  <option value=5000>5000</option>
+      <option value=10000>10000</option>
+    </select>
+	<input type="submit" value="Submit">
+  </form>
+</body></html>
